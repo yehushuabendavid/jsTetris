@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html>
+<!-- BY ARNAUS CELERMAJER -->
+    <head>
+        <title>Tetris</title>
+        <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.5/jquery.min.js"></script>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <meta name="viewport" content="height=device-height, user-scalable=no"/>
+        <meta name="apple-mobile-web-app-capable" content="yes"/>
+        <script>
+            (function (i, s, o, g, r, a, m) {
+                i['GoogleAnalyticsObject'] = r;
+                i[r] = i[r] || function () {
+                    (i[r].q = i[r].q || []).push(arguments)
+                }, i[r].l = 1 * new Date();
+                a = s.createElement(o),
+                        m = s.getElementsByTagName(o)[0];
+                a.async = 1;
+                a.src = g;
+                m.parentNode.insertBefore(a, m)
+            })(window, document, 'script', '//www.google-analytics.com/analytics.js', 'ga');
+
+            ga('create', 'UA-3903606-5', 'auto');
+            ga('send', 'pageview');
+
+        </script>
+    </head>
+    <body>
+
+        <script type="text/javascript">
+            /*
+             * TYPE
+             */
+            var size = 1;
+
+            document.write('<canvas  id="myctx" width="' + 300 * size + '" height="' + 500 * size + '" style=" background-color: white;border:1px solid #000000;"></canvas>');
+            function duplicateArray(a) {
+                b = new Array(a.length);
+                for (i = 0; i < a.length; i++)
+                    b[i] = a[i].slice();
+                return b;
+            }
+            function rotateArray(a) {
+                b = duplicateArray(a);
+
+                for (i = 0; i < b.length; i++)
+                    for (j = 0; j < b[i].length; j++) {
+                        b[j][(a.length - 1) - i] = a[i][j];
+                    }
+
+                return b;
+            }
+            function RandomColor() {
+                return  "rgb(" + Math.round(50 + Math.random() * 206) + ","
+                        + Math.round(50 + Math.random() * 206) + ","
+                        + Math.round(50 + Math.random() * 206) + ")";
+
+
+            }
+            function Tpiece(formtype) {
+                this.X = 4;
+                this.Y = -1;
+
+
+                if (formtype == "")
+                    formtype = ["+", "L", "invL", "I", "2", "S", "O"][Math.round(Math.random() * 5)];
+
+                switch (formtype) {
+                    case "+" :
+                        this.color = "#AA00FF";
+                        this.form = [
+                            [0, 0, 0, 0],
+                            [0, 1, 0, 0],
+                            [0, 1, 1, 0],
+                            [0, 1, 0, 0]
+                        ];
+                        break;
+
+                    case "L" :
+                        this.color = "#AA0000";
+                        this.form = [
+                            [0, 0, 0, 0],
+                            [0, 1, 0, 0],
+                            [0, 1, 0, 0],
+                            [0, 1, 1, 0]
+                        ];
+                        break;
+
+
+                    case "invL" :
+
+                        this.color = "#0000AA";
+                        this.form = [
+                            [0, 0, 0, 0],
+                            [0, 0, 1, 0],
+                            [0, 0, 1, 0],
+                            [0, 1, 1, 0]
+                        ];
+                        break;
+
+                    case "I" :
+
+                        this.color = "#FF0909";
+                        this.form = [
+                            [0, 1, 0, 0],
+                            [0, 1, 0, 0],
+                            [0, 1, 0, 0],
+                            [0, 1, 0, 0]
+                        ];
+                        break;
+                    case "2" :
+
+                        this.color = "#AAAAFF";
+                        this.form = [
+                            [0, 0, 0, 0],
+                            [1, 1, 0, 0],
+                            [0, 1, 1, 0],
+                            [0, 0, 0, 0]
+                        ];
+                        break;
+                    case "S" :
+
+                        this.color = "#AAFFAA";
+                        this.form = [
+                            [0, 0, 0, 0],
+                            [0, 0, 1, 1],
+                            [0, 1, 1, 0],
+                            [0, 0, 0, 0]
+                        ];
+                        break;
+                    case "O" :
+
+                        this.color = "#5555AA";
+                        this.form = [
+                            [0, 0, 0, 0],
+                            [0, 1, 1, 0],
+                            [0, 1, 1, 0],
+                            [0, 0, 0, 0]
+                        ];
+                        break;
+
+                    default:
+                        break;
+                }
+
+
+                this.internalTurn = function () {
+                    this.form = rotateArray(this.form);
+                };
+                this.internalDown = function () {
+                    this.Y++
+                };
+                this.internalLeft = function () {
+                    this.X--
+                };
+                this.internalRight = function () {
+                    this.X++
+                };
+
+                this.Right = function () {
+                    if (testPos(this.X + 1, this.Y, this.form))
+                        this.internalRight();
+                };
+                this.Left = function () {
+                    if (testPos(this.X - 1, this.Y, this.form))
+                        this.internalLeft();
+                };
+                this.Down = function () {
+                    if (testPos(this.X, this.Y + 1, this.form))
+                        this.internalDown()
+                };
+                this.Turn = function () {
+                    if (testPos(this.X, this.Y, rotateArray(this.form)))
+                        this.internalTurn();
+                };
+            }
+            function writeln(str) {
+                //        document.getElementById("debug").innerHTML=str;
+            }
+            function testPos(X, Y, form) {
+                for (var i = 0; i < form.length; i++)
+                {
+                    for (var j = 0; j < form[i].length; j++) {
+                        if (form[i][j] == 1) {
+                            var px = X + j;
+                            var py = Y + i;
+                            if ((px >= 0) && (px < 10) && (py < 20)) {
+                                if (py >= 0)
+                                    if (board[py][px] != boardbg) {
+                                        return false;
+                                    }
+                            } else {
+                                return false;
+                            }
+                        }
+                    }
+                }
+                return true;
+
+            }
+            function testCurrentPiece() {
+                return testPos(currentPiece.X, currentPiece.Y, currentPiece.form);
+            }
+
+            var nbline = 0;
+            try {
+                var myctx = document.getElementById("myctx");
+                var ctx = document.getElementById("myctx").getContext('2d');
+            } catch (err) {
+                writeln(err.message);
+            }
+            var FondDegrad = ctx.createLinearGradient(0, 75 * size, 0, 500 * size);
+            FondDegrad.addColorStop(0, '#FFFFFF');
+            FondDegrad.addColorStop(0.25, '#BBBBBB');
+            FondDegrad.addColorStop(1, '#222255');
+            var blackDegrad = ctx.createLinearGradient(0, 75 * size, 0, 500 * size);
+            blackDegrad.addColorStop(0, '#AAAAAA');
+            blackDegrad.addColorStop(0.25, '#000000');
+            blackDegrad.addColorStop(1, '#090909');
+
+            var intID;
+            var boardbg = blackDegrad;
+            var FPS;
+            var intervalTime = 1000;
+            var currentKey;
+            var board = new Array(20);
+            var GameMode = 0;
+            // 0 new Game;
+            // 1 In Game
+
+            function initBoard() {
+                for (i = 0; i < board.length; i++)
+                    board[i] = new Array(10);
+                for (i = 0; i < board.length; i++)
+                    for (j = 0; j < board[0].length; j++)
+                        board[i][j] = boardbg;
+            }
+            initBoard();
+            var currentPiece = new Tpiece("");
+            var NextPiece = new Tpiece("");
+            function removeline(aidx) {
+                nbline++;
+                for (i = aidx; i > 0; i--)
+                    board[i] = board[i - 1];
+                board[0] = board[0].slice();
+                for (i = 0; i < board[0].length; i++)
+                    board[0][i] = boardbg;
+            }
+            function scanBoard() {
+                scanline = 0;
+                for (var i = 0; i < board.length; i++) {
+                    iligne = 0;
+                    for (var j = 0; j < board[i].length; j++) {
+                        if (board[i][j] != boardbg)
+                            iligne++;
+                    }
+                    if (iligne == board[i].length) {
+                        scanline++;
+                        removeline(i);
+                    }
+                }
+                return scanline;
+            }
+
+
+            //     $("#myctx").css("height", "100%");
+
+            function fixit(piece) {
+
+                for (i = 0; i < piece.form.length; i++)
+                    for (j = 0; j < piece.form[i].length; j++) {
+                        px = piece.X + j;
+                        py = piece.Y + i;
+
+                        if ((px >= 0) && (px < 10) && (py >= 0) && (py < 20) && (
+                                piece.form[i][j] == 1))
+                            board[py][px] = piece.color;
+                    }
+
+            }
+
+            function dokeydown(event) {
+                currentKey = event.keyCode;
+                x = currentPiece.X;
+                y = currentPiece.Y;
+
+                if (currentKey == 37)
+                    currentPiece.Left();
+                if (currentKey == 38) {
+                    currentPiece.Turn();
+                    Paint();
+                }
+                if (currentKey == 39)
+                    currentPiece.Right();
+                if (currentKey == 40)
+                    currentPiece.Down();
+                if (currentKey == 32) {
+                    if (GameMode == 1) {
+                        do {
+                            var ay = currentPiece.Y;
+                            currentPiece.Down();
+
+                        }
+                        while (ay < currentPiece.Y);
+                        fixit(currentPiece);
+                        currentPiece = NextPiece;
+                        NextPiece = new Tpiece("");
+                    } else
+                        newGame();
+                }
+
+
+                /*
+                 
+                 */
+
+
+                // 32 Space
+                // 38 Up
+                // 37 Left
+                // 39 Right
+                // 40 Down
+                event.keyCode = 0;
+                if (GameMode == 1) {
+                    if ((x != currentPiece.X) || (y != currentPiece.Y))
+                        Paint();
+                }
+            }
+
+
+            window.onkeydown = dokeydown;
+
+
+            window.onkeyup = function (event) {
+                currentKey = 0;
+
+            };
+
+
+            function ShowFPS() {
+
+                ctx.drawImage(imgHead, 0, 0, 300 * size, 75 * size);
+                ctx.fillStyle = "red";
+                ctx.fillText(FPS + " FPS", 10 * size, 10 * size);
+
+
+                FPS = 0;
+            }
+            var imgHead = new Image();
+            imgHead.src = "img/header.jpg";
+            ctx.drawImage(imgHead, 0, 0, 300 * size, 75 * size);
+            // window.keyboard
+
+            ctx.fillStyle = FondDegrad;
+            ctx.fillRect(0, 75 * size, 300 * size, 500 * size);
+            function DrawNext() {
+                ctx.fillStyle = "Black";
+                ctx.fillText("Next", 205 * size, 105 * size);
+                for (var i = 0; i < NextPiece.form.length; i++)
+                    for (var j = 0; j < NextPiece.form[i].length; j++) {
+                        if (NextPiece.form[i][j] == 1)
+                            ctx.fillStyle = NextPiece.color;
+                        else
+                            ctx.fillStyle = FondDegrad;
+                        ctx.fillRect((210 + j * 15) * size, (110 + i * 15) * size, 15 * size, 15 * size);
+
+                    }
+                ctx.fillStyle = FondDegrad;
+                ctx.fillRect(1 * size, 75 * size, 300 * size, 20 * size);
+                ctx.fillStyle = "Black";
+                ctx.fillText("Score :" + nbline, 1 * size, 95 * size);
+
+
+            }
+            function Paint() {
+
+                DrawNext();
+                FPS = FPS + 1;
+                ctx.strokeStyle = "gray";
+                ctx.strokeRect(1 * size, 98 * size, 202 * size, 400 * size);
+                tmpboard = duplicateArray(board);
+                for (i = 0; i < currentPiece.form.length; i++)
+                    for (j = 0; j < currentPiece.form[i].length; j++) {
+                        px = currentPiece.X + j;
+                        py = currentPiece.Y + i;
+
+                        if ((px >= 0) && (px < 10) && (py >= 0) && (py < 20) && (
+                                currentPiece.form[i][j] == 1))
+                            tmpboard[py][px] = currentPiece.color;
+                    }
+
+                for (i = 0; i < tmpboard.length; i++)
+                    for (j = 0; j < tmpboard[0].length; j++) {
+                        dodrawrect(tmpboard[i][j], (2 + 20 * j) * size, (99 + i * 20) * size, 20 * size, 20 * size);
+
+                    }
+                // drawKeyPad(0.05);
+            }
+            var
+                    lastRect = [];
+            function colorrect(color, x, y, w, h) {
+                this.x = x;
+                this.y = y;
+                this.h = h;
+                this.w = w;
+                this.color = color;
+            }
+            function dodrawrect(color, x, y, w, h) {
+                var found = 0;
+                for (ii = 0; ii < lastRect.length; ii++) {
+                    if ((lastRect[ii].x == x) &&
+                            (lastRect[ii].y == y) &&
+                            (lastRect[ii].w == w) &&
+                            (lastRect[ii].h == h)) {
+                        if (lastRect[ii].color == color)
+                            found = 1;
+                        else
+                            found = 2;
+                        lastRect[ii].color = color;
+                        break;
+
+                    }
+
+                }
+                if (found == 0)
+                    lastRect[lastRect.length] = new colorrect(color, x, y, w, h);
+
+
+                if (found != 1) {
+
+                    if (color != boardbg) {
+                        ctx.fillStyle = boardbg;
+                        ctx.fillRect(x, y, w, h);
+                        ctx.fillStyle = color;
+                        ctx.fillRect(x + 1 * size, y + 1 * size, w - 2 * size, h - 2 * size);
+                    } else {
+                        ctx.fillStyle = color;
+                        ctx.fillRect(x, y, w, h);
+                    }
+                }
+            }
+
+            function maze(o) {
+                var rn = "\r\n";
+                var str = typeof (o) + rn;
+                for (s in o)
+                    str += s + rn;
+                return str;
+            }
+
+            function ObjPos(aObj) {
+                var obj = aObj;
+                var top = 0;
+                var left = 0;
+                while (obj && obj.tagName != "BODY") {
+                    top += obj.offsetTop;
+                    left += obj.offsetLeft;
+                    obj = obj.offsetParent;
+                }
+                return {
+                    top: top,
+                    left: left
+                };
+
+            }
+            function drawKeyPad(alpha) {
+
+                ctx.strokeStyle = 'rgba(255,255,255,' + alpha + ')';
+                ctx.strokeRect(110 * size, 260 * size, 80 * size, 70 * size);
+                ctx.strokeRect(110 * size, 340 * size, 80 * size, 70 * size);
+                ctx.strokeRect(10 * size, 340 * size, 80 * size, 70 * size);
+                ctx.strokeRect(210 * size, 340 * size, 80 * size, 70 * size);
+                ctx.strokeRect(10 * size, 420 * size, (3 * 100 - 20) * size, 70 * size);
+
+                ctx.strokeStyle = 'rgba(255,0,0,' + alpha + ')';
+
+                ctx.strokeRect(15 * size, 425 * size, (3 * 95 - 20) * size, 60 * size);
+
+                //    ctx.beginPath();
+                ctx.moveTo(150 * size, 265 * size);
+                ctx.lineTo(185 * size, 325 * size);
+                ctx.lineTo(115 * size, 325 * size);
+                ctx.lineTo(150 * size, 265 * size);
+
+
+                //    ctx.beginPath();
+                ctx.moveTo(115 * size, 345 * size);
+                ctx.lineTo(185 * size, 345 * size);
+                ctx.lineTo(150 * size, 405 * size);
+                ctx.lineTo(115 * size, 345 * size);
+
+                ctx.moveTo(15 * size, 375 * size);
+                ctx.lineTo(85 * size, 345 * size);
+                ctx.lineTo(85 * size, 405 * size);
+                ctx.lineTo(15 * size, 375 * size);
+
+                ctx.moveTo(215 * size, 345 * size);
+                ctx.lineTo(285 * size, 375 * size);
+                ctx.lineTo(215 * size, 405 * size);
+                ctx.lineTo(215 * size, 345 * size);
+
+
+            }
+            $("#myctx").click(function (event) {
+
+                var mouseX = event.clientX - ObjPos(myctx).left + window.pageXOffset;
+                var mouseY = event.clientY - ObjPos(myctx).top + window.pageYOffset;
+                writeln(["(", mouseX, ",", mouseY, ")"].join(""));
+                if (GameMode == 0)
+                    newGame();
+                else {
+
+                    if ((mouseX >= 110 * size) && (mouseX <= 110 * size + 80 * size) &&
+                            (mouseY >= 260 * size) && (mouseY <= 260 * size + 70 * size))
+                        currentPiece.Turn();
+
+                    if ((mouseX >= 110 * size) && (mouseX <= 110 * size + 80 * size) &&
+                            (mouseY >= 340 * size) && (mouseY <= 340 * size + 70 * size))
+                        currentPiece.Down();
+
+                    if ((mouseX >= 10 * size) && (mouseX <= 10 * size + 80 * size) &&
+                            (mouseY >= 340 * size) && (mouseY <= 340 * size + 70 * size))
+                        currentPiece.Left();
+
+                    if ((mouseX >= 210 * size) && (mouseX <= 210 * size + 80 * size) &&
+                            (mouseY >= 340 * size) && (mouseY <= 340 * size + 70 * size))
+                        currentPiece.Right();
+
+                    if ((mouseX >= 10 * size) && (mouseX <= 10 * size + (3 * 100 - 20) * size) &&
+                            (mouseY >= 420 * size) && (mouseY <= 420 * size + 70 * size)) {
+                        if (GameMode == 1) {
+                            do {
+                                ay = currentPiece.Y;
+                                currentPiece.Down();
+
+                            }
+                            while (ay < currentPiece.Y);
+                            fixit(currentPiece);
+                            currentPiece = NextPiece;
+                            NextPiece = new Tpiece("");
+                        } else
+                            newGame();
+                    }
+
+
+                    Paint();
+                    drawKeyPad(0.1);
+                }
+
+            });
+            $(document).ready(function () {
+
+                setInterval("ShowFPS()", 1000);
+                intID = setInterval("avance()", intervalTime);
+            });
+            function doInGame() {
+                if (!testCurrentPiece())
+                    gameOver();
+
+                ay = currentPiece.Y;
+                currentPiece.Down();
+                if (currentPiece.Y == ay) {
+                    if (currentPiece.Y < 0) {
+                        gameOver()
+                    } else {
+                        fixit(currentPiece);
+                        currentPiece = NextPiece;
+
+                        NextPiece = new Tpiece("");
+                    }
+                }
+                Paint();
+                intervalTime -= 10 * scanBoard();
+            }
+
+            function gameOver() {
+
+                GameMode = 0;
+                doGameOver();
+
+            }
+            function newGame() {
+                lastRect = new Array();
+                ctx.fillStyle = FondDegrad;
+                ctx.fillRect(1 * size, 75 * size, 300 * size, 500 * size);
+                ctx.fillStyle = FondDegrad;
+                ctx.fillRect(1 * size, 250 * size, 300 * size, 250 * size);
+                GameMode = 1;
+                intervalTime = 1000;
+                nbline = 0;
+                currentPiece = new Tpiece("");
+                NextPiece = new Tpiece("");
+                initBoard();
+            }
+
+            function doGameOver() {
+
+
+                ctx.fillStyle = FondDegrad;
+                ctx.fillRect(0, 75 * size, 300 * size, 500 * size);
+                ctx.fillStyle = "black";
+                var str = ctx.font;
+                ctx.font = "36px Arial";
+                ctx.fillText("Game Over", (300 * size / 2) -
+                        (ctx.measureText("Game Over").width / 2), 250 * size);
+                ctx.font = str;
+                ctx.fillText("(press space to start)", (300 * size / 2) -
+                        (ctx.measureText("(press space to start)").width / 2), 265 * size);
+
+
+                if (nbline > 0) {
+                    ctx.font = "24px Arial";
+                    ctx.fillText("Last Score " + nbline + " lines", (300 * size / 2) -
+                            (ctx.measureText("Last Score " + nbline + " lines").width / 2), 300 * size);
+
+
+                }
+
+                ctx.font = str;
+            }
+            function avance() {
+                try {
+                    clearInterval(intID);
+                    switch (GameMode) {
+                        case 0 :
+                            doGameOver();
+                            break;
+                        case 1:
+                            doInGame();
+                            break;
+                        default :
+                            break;
+                    }
+                }
+                finally {
+                    intID = setInterval("avance()", intervalTime);
+                }
+
+            }
+        </script>
+    </body>
+
+</html>
+
